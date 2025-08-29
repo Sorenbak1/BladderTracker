@@ -10,8 +10,7 @@ import json
 
 # Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-with open("robust-zenith-469918-a5-2447c030e8ef.json") as f:
-    creds_dict = json.load(f)
+creds_dict = dict(st.secrets["gcp_service_account"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
