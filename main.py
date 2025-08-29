@@ -125,10 +125,36 @@ df['Cumulative Amount'] = df['Signed Amount'].cumsum()
 
 # Streamlit UI
 st.title("Bladder Volume Tracker")
-st.markdown("#### Cumulative bladder volume since selected start time")
-st.write("*Entries are shown starting from your selected date and time. Intake and emptying events are color-coded. Laying periods are highlighted in orange.*")
+st.markdown("#### Cumulative bladder volume (select time range in sidebar)")
+st.write(
+    "*Entries are shown from your selected date and time. "
+    "Intake and emptying events are color-coded. Laying periods are highlighted in orange.*"
+)
 
-fig, ax = plt.subplots(figsize=(10, 5))
+# Responsive columns for summary stats
+with st.container():
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Summary")
+        st.metric("Total Intake (ml)", f"{total_intake:.0f}")
+        st.metric("Total Emptying (ml)", f"{total_emptying:.0f}")
+        st.metric("Net Change (ml)", f"{net_change:.0f}")
+        st.metric("Time since last emptying", time_since_str)
+    with col2:
+        st.subheader("Legend")
+        st.markdown(
+            """
+            <span style='color:green'>● Emptying</span><br>
+            <span style='color:blue'>● Intake (Water)</span><br>
+            <span style='color:red'>● Intake (Coffee)</span><br>
+            <span style='color:#0072B2'>● Other</span><br>
+            <span style='background-color:orange; color:black'>Laying Down</span>
+            """,
+            unsafe_allow_html=True
+        )
+
+# Make the plot smaller and more readable for mobile
+fig, ax = plt.subplots(figsize=(6, 3))
 
 # Prepare colors for each event type for both line and dots
 colors = []
@@ -154,16 +180,6 @@ for i in range(len(df)):
     ax.plot(df['DateTime'].iloc[i], df['Cumulative Amount'].iloc[i],
             marker='o', color=colors[i], markersize=8)
 
-# Add legend manually
-from matplotlib.lines import Line2D
-legend_elements = [
-    Line2D([0], [0], color='green', marker='o', linestyle='-', label='Emptying'),
-    Line2D([0], [0], color='blue', marker='o', linestyle='-', label='Intake (Water)'),
-    Line2D([0], [0], color='red', marker='o', linestyle='-', label='Intake (Coffee)'),
-    Line2D([0], [0], color='#0072B2', marker='o', linestyle='-', label='Other')
-]
-ax.legend(handles=legend_elements, loc='upper right', fontsize=12)
-
 # Add marks for laying periods
 for idx, row in laying_rows.iterrows():
     start_time = row['DateTime']
@@ -175,46 +191,28 @@ for idx, row in laying_rows.iterrows():
             ax.axvspan(start_time, end_time, color='orange', alpha=0.2, label='Laying Down' if idx == laying_rows.index[0] else None)
             ax.text(start_time, ax.get_ylim()[1]*0.95, 'Laying', color='orange', fontsize=10, verticalalignment='top', rotation=90)
 
-ax.set_xlabel('Time', fontsize=12)
-ax.set_ylabel('Cumulative Amount (ml)', fontsize=12)
-ax.set_title('Cumulative Bladder Volume vs Time', fontsize=14, fontweight='bold')
+ax.set_xlabel('Time', fontsize=10)
+ax.set_ylabel('Cumulative Amount (ml)', fontsize=10)
+ax.set_title('Bladder Volume vs Time', fontsize=12, fontweight='bold')
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))  # Show only time
-plt.xticks(rotation=45, fontsize=10)
-plt.yticks(fontsize=10)
+plt.xticks(rotation=45, fontsize=8)
+plt.yticks(fontsize=8)
 ax.grid(True, linestyle='--', alpha=0.6)
 fig.tight_layout()
-st.pyplot(fig)
-
-# --- Summary Statistics ---
-total_intake = df[df['Type'].str.strip().str.lower() == 'intake']['Amount'].sum()
-total_emptying = df[df['Type'].str.strip().str.lower() == 'emptying']['Amount'].sum()
-net_change = df['Signed Amount'].sum()
-
-# Calculate time since last emptying (using Copenhagen time)
-cph_tz = pytz.timezone('Europe/Copenhagen')
-now_cph = datetime.now(cph_tz)
-if not df[df['Type'].str.strip().str.lower() == 'emptying'].empty:
-    last_emptying_time = df[df['Type'].str.strip().str.lower() == 'emptying']['DateTime'].max()
-    # Localize last_emptying_time to Copenhagen if not already
-    if last_emptying_time.tzinfo is None:
-        last_emptying_time = cph_tz.localize(last_emptying_time)
-    time_since_emptying = now_cph - last_emptying_time
-    hours, remainder = divmod(time_since_emptying.total_seconds(), 3600)
-    minutes = remainder // 60
-    time_since_str = f"{int(hours)}h {int(minutes)}m"
-else:
-    time_since_str = "N/A"
-
-st.subheader("Summary Statistics (since selected start and end time)")
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Intake (ml)", f"{total_intake:.0f}")
-col2.metric("Total Emptying (ml)", f"{total_emptying:.0f}")
-col3.metric("Net Change (ml)", f"{net_change:.0f}")
-col4.metric("Time since last emptying", time_since_str)
+st.pyplot(fig, use_container_width=True)
 
 # --- Event Table ---
-st.subheader("Recent Events (since selected start and end time)")
-show_cols = ['DateTime', 'Type', 'Amount', 'Intake Type', 'Emptying Type', 'Laying - End']
-df_display = df_raw[(df_raw['DateTime'] >= earliest_time) & (df_raw['DateTime'] <= latest_time)][show_cols].sort_values('DateTime')
-df_display['DateTime'] = df_display['DateTime'].dt.strftime('%d/%m %H:%M')
-st.dataframe(df_display, use_container_width=True)
+st.subheader("Recent Events")
+st.dataframe(
+    df_display,
+    use_container_width=True,
+    height=300  # limit height for mobile scroll
+)
+
+# Add a note for mobile users
+st.markdown(
+    "<div style='font-size: 14px; color: #666; text-align: center;'>"
+    "Tip: You can scroll the table sideways and pinch-to-zoom the plot on your phone."
+    "</div>",
+    unsafe_allow_html=True
+)
