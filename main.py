@@ -224,6 +224,11 @@ st.pyplot(fig, use_container_width=True)
 
 # --- Event Table ---
 st.subheader("Recent Events")
+show_cols = ['DateTime', 'Type', 'Amount', 'Intake Type', 'Emptying Type', 'Laying - End']
+df_display = df_raw[
+    (df_raw['DateTime'] >= earliest_time) & (df_raw['DateTime'] <= latest_time)
+][show_cols].sort_values('DateTime')
+df_display['DateTime'] = df_display['DateTime'].dt.strftime('%d/%m/%Y %H:%M')
 st.dataframe(
     df_display,
     use_container_width=True,
