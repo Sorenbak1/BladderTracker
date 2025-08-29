@@ -6,11 +6,17 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pytz
 from datetime import datetime
+import json
 
 # Google Sheets setup
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("robust-zenith-469918-a5-2447c030e8ef.json", scope)  # Place your credentials file in the project folder
+with open("robust-zenith-469918-a5-2447c030e8ef.json") as f:
+    creds_dict = json.load(f)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
+
+# creds = ServiceAccountCredentials.from_json_keyfile_name("robust-zenith-469918-a5-2447c030e8ef.json", scope)
+# client = gspread.authorize(creds)
 
 # Replace with your private Google Sheet name
 SHEET_NAME = "BladderTrackerData"
