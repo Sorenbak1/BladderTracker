@@ -123,6 +123,27 @@ df['Signed Amount'] = df.apply(
 # Cumulative sum of Signed Amount
 df['Cumulative Amount'] = df['Signed Amount'].cumsum()
 
+# --- Summary Statistics ---
+total_intake = df[df['Type'].str.strip().str.lower() == 'intake']['Amount'].sum()
+total_emptying = df[df['Type'].str.strip().str.lower() == 'emptying']['Amount'].sum()
+net_change = df['Signed Amount'].sum()
+
+# Calculate time since last emptying (using Copenhagen time)
+cph_tz = pytz.timezone('Europe/Copenhagen')
+now_cph = datetime.now(cph_tz)
+emptying_df = df[df['Type'].str.strip().str.lower() == 'emptying']
+if not emptying_df.empty:
+    last_emptying_time = emptying_df['DateTime'].max()
+    # Localize last_emptying_time to Copenhagen if not already
+    if last_emptying_time.tzinfo is None:
+        last_emptying_time = cph_tz.localize(last_emptying_time)
+    time_since_emptying = now_cph - last_emptying_time
+    hours, remainder = divmod(time_since_emptying.total_seconds(), 3600)
+    minutes = remainder // 60
+    time_since_str = f"{int(hours)}h {int(minutes)}m"
+else:
+    time_since_str = "N/A"
+
 # Streamlit UI
 st.title("Bladder Volume Tracker")
 st.markdown("#### Cumulative bladder volume (select time range in sidebar)")
