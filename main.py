@@ -37,7 +37,7 @@ df_raw = df_raw.dropna(subset=['DateTime'])
 laying_rows = df_raw[df_raw['Type'].astype(str).str.strip().str.lower() == 'laying down']
 
 # Now continue with your filtered DataFrame for plotting
-df = df_raw[df_raw['Amount'].astype(str).str.isnumeric()]
+df = df_raw.loc[df_raw['Amount'].astype(str).str.isnumeric()].copy()
 df['Amount'] = pd.to_numeric(df['Amount'])
 
 # Sort by datetime
@@ -219,7 +219,7 @@ plt.xticks(rotation=45, fontsize=8)
 plt.yticks(fontsize=8)
 ax.grid(True, linestyle='--', alpha=0.6)
 fig.tight_layout()
-st.pyplot(fig, use_container_width=True)
+st.pyplot(fig, width='stretch')
 
 # --- Event Table ---
 st.subheader("Recent Events")
@@ -230,7 +230,7 @@ df_display = df_raw[
 df_display['DateTime'] = df_display['DateTime'].dt.strftime('%d/%m/%Y %H:%M')
 st.dataframe(
     df_display,
-    use_container_width=True,
+    width='stretch',
     height=300  # limit height for mobile scroll
 )
 
