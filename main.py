@@ -28,10 +28,9 @@ df_raw = pd.DataFrame(data)  # Keep the raw DataFrame for laying periods
 # Combine Date and Time into a single datetime column
 df_raw['DateTime'] = pd.to_datetime(
     df_raw['Date'].astype(str) + ' ' + df_raw['Time'].astype(str),
-    format='%d/%m/%Y %H:%M'
+    format='%d/%m/%Y %H:%M',
+    errors='coerce'  # <-- This will set invalid parses to NaT
 )
-
-# Remove rows with missing or invalid DateTime
 df_raw = df_raw.dropna(subset=['DateTime'])
 
 # Extract laying periods before filtering
@@ -242,3 +241,8 @@ st.markdown(
     "</div>",
     unsafe_allow_html=True
 )
+
+bad_rows = df_raw[df_raw['DateTime'].isna()]
+if not bad_rows.empty:
+    st.warning("Some rows have invalid date/time format and were skipped.")
+    st.write(bad_rows)
