@@ -133,7 +133,6 @@ now_cph = datetime.now(cph_tz)
 emptying_df = df[df['Type'].str.strip().str.lower() == 'emptying']
 if not emptying_df.empty:
     last_emptying_time = emptying_df['DateTime'].max()
-    # Localize last_emptying_time to Copenhagen if not already
     if last_emptying_time.tzinfo is None:
         last_emptying_time = cph_tz.localize(last_emptying_time)
     time_since_emptying = now_cph - last_emptying_time
@@ -142,6 +141,20 @@ if not emptying_df.empty:
     time_since_str = f"{int(hours)}h {int(minutes)}m"
 else:
     time_since_str = "N/A"
+
+# Calculate days since last accident
+accident_df = df[
+    (df['Type'].str.strip().str.lower() == 'emptying') &
+    (df['Emptying Type'].astype(str).str.strip().str.lower() == 'accident')
+]
+if not accident_df.empty:
+    last_accident_time = accident_df['DateTime'].max()
+    if last_accident_time.tzinfo is None:
+        last_accident_time = cph_tz.localize(last_accident_time)
+    days_since_accident = (now_cph - last_accident_time).days
+    days_since_accident_str = f"{days_since_accident} days"
+else:
+    days_since_accident_str = "No accidents in selected period"
 
 # Streamlit UI
 st.title("Bladder Volume Tracker")
@@ -160,6 +173,7 @@ with st.container():
         st.metric("Total Emptying (ml)", f"{total_emptying:.0f}")
         st.metric("Net Change (ml)", f"{net_change:.0f}")
         st.metric("Time since last emptying", time_since_str)
+        st.metric("Days since last accident", days_since_accident_str)
     with col2:
         st.subheader("Legend")
         st.markdown(
