@@ -142,19 +142,19 @@ if not emptying_df.empty:
 else:
     time_since_str = "N/A"
 
-# Calculate days since last accident
-accident_df = df[
-    (df['Type'].str.strip().str.lower() == 'emptying') &
-    (df['Emptying Type'].astype(str).str.strip().str.lower() == 'accident')
+# Calculate days since last accident (search entire database)
+accident_df_all = df_raw[
+    (df_raw['Type'].astype(str).str.strip().str.lower() == 'emptying') &
+    (df_raw['Emptying Type'].astype(str).str.strip().str.lower() == 'accident')
 ]
-if not accident_df.empty:
-    last_accident_time = accident_df['DateTime'].max()
+if not accident_df_all.empty:
+    last_accident_time = accident_df_all['DateTime'].max()
     if last_accident_time.tzinfo is None:
         last_accident_time = cph_tz.localize(last_accident_time)
     days_since_accident = (now_cph - last_accident_time).days
     days_since_accident_str = f"{days_since_accident} days"
 else:
-    days_since_accident_str = "No accidents in selected period"
+    days_since_accident_str = "No accidents in database"
 
 # Streamlit UI
 st.title("Bladder Volume Tracker")
