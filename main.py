@@ -156,6 +156,17 @@ if not accident_df_all.empty:
 else:
     days_since_accident_str = "No accidents in database"
 
+# Calculate intake since last emptying (using filtered df)
+emptying_df = df[df['Type'].str.strip().str.lower() == 'emptying']
+if not emptying_df.empty:
+    last_emptying_time = emptying_df['DateTime'].max()
+    intake_since_last_emptying = df[
+        (df['Type'].str.strip().str.lower() == 'intake') &
+        (df['DateTime'] > last_emptying_time)
+    ]['Amount'].sum()
+else:
+    intake_since_last_emptying = 0
+
 # Streamlit UI
 st.title("Bladder Volume Tracker")
 st.markdown("#### Cumulative bladder volume (select time range in sidebar)")
@@ -174,6 +185,7 @@ with st.container():
         st.metric("Net Change (ml)", f"{net_change:.0f}")
         st.metric("Time since last emptying", time_since_str)
         st.metric("Days since last accident", days_since_accident_str)
+        st.metric("Intake since last emptying (ml)", f"{intake_since_last_emptying:.0f}")
     with col2:
         st.subheader("Legend")
         st.markdown(
