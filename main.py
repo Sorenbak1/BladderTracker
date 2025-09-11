@@ -226,6 +226,14 @@ for i in range(len(df)):
     ax.plot(df['DateTime'].iloc[i], df['Cumulative Amount'].iloc[i],
             marker='o', color=colors[i], markersize=8)
 
+# Add red marker for each accident in the filtered period
+accident_rows = df[
+    (df['Type'].str.strip().str.lower() == 'emptying') &
+    (df['Emptying Type'].astype(str).str.strip().str.lower() == 'accident')
+]
+for idx, row in accident_rows.iterrows():
+    ax.plot(row['DateTime'], row['Cumulative Amount'], marker='X', color='red', markersize=12, label='Accident' if idx == accident_rows.index[0] else "")
+
 # Add marks for laying periods
 for idx, row in laying_rows.iterrows():
     start_time = row['DateTime']
@@ -272,3 +280,70 @@ bad_rows = df_raw[df_raw['DateTime'].isna()]
 if not bad_rows.empty:
     st.warning("Some rows have invalid date/time format and were skipped.")
     st.write(bad_rows)
+
+# --- Full Timeline Plot ---
+st.subheader("Full Timeline: Cumulative Bladder Volume")
+
+# Prepare full timeline data
+df_full = df_raw.loc[df_raw['Amount'].astype(str).str.isnumeric()].copy()
+df_full['Amount'] = pd.to_numeric(df_full['Amount'])
+df_full = df_full.sort_values('DateTime')
+df_full['Signed Amount'] = df_full.apply(
+    lambda row: -row['Amount'] if str(row['Type']).strip().lower() == 'emptying' else row['Amount'],
+    axis=1
+)
+df_full['Cumulative Amount'] = df_full['Signed Amount'].cumsum()
+
+# Prepare colors for each event type for both line and dots (full timeline)
+colors_full = []
+for idx, row in df_full.iterrows():
+    if str(row['Type']).strip().lower() == 'emptying':
+        colors_full.append('green')
+    elif str(row['Type']).strip().lower() == 'intake':
+        intake_type = str(row['Intake Type']).strip().lower()
+        if intake_type == 'water':
+            colors_full.append('blue')
+        elif intake_type == 'coffee':
+            colors_full.append('red')
+        else:
+            colors_full.append('#0072B2')
+    else:
+        colors_full.append('#0072B2')
+
+fig_full, ax_full = plt.subplots(figsize=(10, 3))
+
+# Plot cumulative amount as a colored line and dots (full timeline)
+for i in range(1, len(df_full)):
+    ax_full.plot(df_full['DateTime'].iloc[i-1:i+1], df_full['Cumulative Amount'].iloc[i-1:i+1],
+                 color=colors_full[i], linewidth=2)
+for i in range(len(df_full)):
+    ax_full.plot(df_full['DateTime'].iloc[i], df_full['Cumulative Amount'].iloc[i],
+                 marker='o', color=colors_full[i], markersize=6)
+
+# Add red marker for each accident in the full timeline
+accident_rows_full = df_full[
+    (df_full['Type'].str.strip().str.lower() == 'emptying') &
+    (df_full['Emptying Type'].astype(str).str.strip().str.lower() == 'accident')
+]
+for idx, row in accident_rows_full.iterrows():
+    ax_full.plot(row['DateTime'], row['Cumulative Amount'], marker='X', color='red', markersize=10, label='Accident' if idx == accident_rows_full.index[0] else "")
+
+# Add marks for laying periods in full timeline
+laying_rows_full = df_raw[df_raw['Type'].astype(str).str.strip().str.lower() == 'laying down']
+for idx, row in laying_rows_full.iterrows():
+    start_time = row['DateTime']
+    end_time_str = str(row['Laying - End']).strip()
+    if end_time_str:
+        end_time = pd.to_datetime(str(row['Date']) + ' ' + end_time_str, format='%d/%m/%Y %H:%M', errors='coerce')
+        if pd.notnull(end_time):
+            ax_full.axvspan(start_time, end_time, color='orange', alpha=0.2, label='Laying Down' if idx == laying_rows_full.index[0] else None)
+
+ax_full.set_xlabel('Date & Time', fontsize=10)
+ax_full.set_ylabel('Cumulative Amount (ml)', fontsize=10)
+ax_full.set_title('Full Timeline: Bladder Volume vs Time', fontsize=12, fontweight='bold')
+ax_full.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M'))
+plt.xticks(rotation=45, fontsize=8)
+plt.yticks(fontsize=8)
+ax_full.grid(True, linestyle='--', alpha=0.6)
+fig_full.tight_layout()
+st.pyplot(fig_full, width='stretch')
