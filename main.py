@@ -347,3 +347,31 @@ plt.yticks(fontsize=8)
 ax_full.grid(True, linestyle='--', alpha=0.6)
 fig_full.tight_layout()
 st.pyplot(fig_full, width='stretch')
+
+# --- Histogram: Average Emptying per Hour (Full Data) ---
+st.subheader("Average Emptying Amount by Hour (Full Data)")
+
+# Filter only emptying events with valid amounts
+emptying_full = df_raw[
+    (df_raw['Type'].astype(str).str.strip().str.lower() == 'emptying') &
+    (df_raw['Amount'].astype(str).str.isnumeric())
+].copy()
+emptying_full['Amount'] = pd.to_numeric(emptying_full['Amount'])
+
+# Extract hour from DateTime
+emptying_full['Hour'] = emptying_full['DateTime'].dt.hour
+
+# Group by hour and calculate average
+avg_emptying_by_hour = emptying_full.groupby('Hour')['Amount'].mean()
+
+# Plot histogram
+fig_hist, ax_hist = plt.subplots(figsize=(8, 3))
+ax_hist.bar(avg_emptying_by_hour.index, avg_emptying_by_hour.values, color='green', alpha=0.7)
+ax_hist.set_xlabel('Hour of Day', fontsize=10)
+ax_hist.set_ylabel('Average Emptying (ml)', fontsize=10)
+ax_hist.set_title('Average Emptying Amount by Hour', fontsize=12, fontweight='bold')
+ax_hist.set_xticks(range(0, 24))
+ax_hist.set_xticklabels([f"{h:02d}:00" for h in range(0, 24)], rotation=45, fontsize=8)
+ax_hist.grid(True, linestyle='--', alpha=0.5)
+fig_hist.tight_layout()
+st.pyplot(fig_hist, width='stretch')
