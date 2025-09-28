@@ -378,6 +378,17 @@ st.pyplot(fig_hist, width='stretch')
 
 # --- 2. Boxplot by Hour ---
 st.subheader("Emptying Amount Distribution by Hour (Boxplot, Full Data)")
+st.markdown(
+    """
+    This boxplot shows the distribution of emptying amounts for each hour of the day across all your data.
+    - The **box** represents the middle 50% of values (from the first to third quartile).
+    - The **line inside the box** is the median emptying amount for that hour.
+    - **Whiskers** show the range of typical values, and dots outside are outliers.
+    <br>
+    Use this plot to spot which hours tend to have higher or lower emptying amounts, and to see how variable your emptying is at different times of day.
+    """,
+    unsafe_allow_html=True
+)
 boxplot_data = [emptying_full[emptying_full['Hour'] == h]['Amount'] for h in range(24)]
 fig_box, ax_box = plt.subplots(figsize=(8, 3))
 ax_box.boxplot(boxplot_data, positions=range(24), patch_artist=True, boxprops=dict(facecolor='lightgreen', color='green'))
