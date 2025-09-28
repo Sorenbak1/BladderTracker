@@ -375,3 +375,78 @@ ax_hist.set_xticklabels([f"{h:02d}:00" for h in range(0, 24)], rotation=45, font
 ax_hist.grid(True, linestyle='--', alpha=0.5)
 fig_hist.tight_layout()
 st.pyplot(fig_hist, width='stretch')
+
+# --- 2. Boxplot by Hour ---
+st.subheader("Emptying Amount Distribution by Hour (Boxplot, Full Data)")
+boxplot_data = [emptying_full[emptying_full['Hour'] == h]['Amount'] for h in range(24)]
+fig_box, ax_box = plt.subplots(figsize=(8, 3))
+ax_box.boxplot(boxplot_data, positions=range(24), patch_artist=True, boxprops=dict(facecolor='lightgreen', color='green'))
+ax_box.set_xlabel('Hour of Day', fontsize=10)
+ax_box.set_ylabel('Emptying Amount (ml)', fontsize=10)
+ax_box.set_title('Emptying Amount Distribution by Hour', fontsize=12, fontweight='bold')
+ax_box.set_xticks(range(0, 24))
+ax_box.set_xticklabels([f"{h:02d}:00" for h in range(0, 24)], rotation=45, fontsize=8)
+ax_box.grid(True, linestyle='--', alpha=0.5)
+fig_box.tight_layout()
+st.pyplot(fig_box, width='stretch')
+
+# --- 3. Trend Over Time (Rolling Average) ---
+st.subheader("Emptying Amount Trend Over Time (7-Day Rolling Average, Full Data)")
+emptying_full_sorted = emptying_full.sort_values('DateTime')
+emptying_full_sorted['RollingAvg'] = emptying_full_sorted['Amount'].rolling(window=7, min_periods=1).mean()
+fig_trend, ax_trend = plt.subplots(figsize=(10, 3))
+ax_trend.plot(emptying_full_sorted['DateTime'], emptying_full_sorted['RollingAvg'], color='purple', linewidth=2)
+ax_trend.set_xlabel('Date & Time', fontsize=10)
+ax_trend.set_ylabel('7-Day Rolling Avg Emptying (ml)', fontsize=10)
+ax_trend.set_title('Emptying Amount Trend Over Time', fontsize=12, fontweight='bold')
+ax_trend.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m %H:%M'))
+plt.xticks(rotation=45, fontsize=8)
+plt.yticks(fontsize=8)
+ax_trend.grid(True, linestyle='--', alpha=0.6)
+fig_trend.tight_layout()
+st.pyplot(fig_trend, width='stretch')
+
+# --- 5. Correlation Analysis: Intake vs. Emptying ---
+st.subheader("Correlation: Intake vs. Next Emptying Amount (Full Data)")
+# Find each intake and the next emptying after it
+intake_events = df_raw[
+    (df_raw['Type'].astype(str).str.strip().str.lower() == 'intake') &
+    (df_raw['Amount'].astype(str).str.isnumeric())
+].copy()
+intake_events['Amount'] = pd.to_numeric(intake_events['Amount'])
+intake_events = intake_events.sort_values('DateTime')
+
+emptying_events = df_raw[
+    (df_raw['Type'].astype(str).str.strip().str.lower() == 'emptying') &
+    (df_raw['Amount'].astype(str).str.isnumeric())
+].copy()
+emptying_events['Amount'] = pd.to_numeric(emptying_events['Amount'])
+emptying_events = emptying_events.sort_values('DateTime')
+
+# For each intake, find the next emptying
+next_emptying_amounts = []
+for idx, intake_row in intake_events.iterrows():
+    next_emptying = emptying_events[emptying_events['DateTime'] > intake_row['DateTime']]
+    if not next_emptying.empty:
+        next_emptying_amounts.append(next_emptying.iloc[0]['Amount'])
+    else:
+        next_emptying_amounts.append(None)
+intake_events['NextEmptyingAmount'] = next_emptying_amounts
+
+# Drop rows where next emptying is missing
+corr_df = intake_events.dropna(subset=['NextEmptyingAmount'])
+
+# Plot correlation
+fig_corr, ax_corr = plt.subplots(figsize=(6, 4))
+ax_corr.scatter(corr_df['Amount'], corr_df['NextEmptyingAmount'], color='teal', alpha=0.7)
+ax_corr.set_xlabel('Intake Amount (ml)', fontsize=10)
+ax_corr.set_ylabel('Next Emptying Amount (ml)', fontsize=10)
+ax_corr.set_title('Intake vs. Next Emptying Amount', fontsize=12, fontweight='bold')
+ax_corr.grid(True, linestyle='--', alpha=0.5)
+fig_corr.tight_layout()
+st.pyplot(fig_corr, width='stretch')
+
+# Optionally show correlation coefficient
+if not corr_df.empty:
+    corr_coef = corr_df['Amount'].corr(corr_df['NextEmptyingAmount'])
+    st.write(f"Correlation coefficient: **{corr_coef:.2f}**")
