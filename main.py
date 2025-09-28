@@ -386,12 +386,24 @@ st.markdown(
     - **Whiskers** show the range of typical values, and dots outside are outliers.
     <br>
     Use this plot to spot which hours tend to have higher or lower emptying amounts, and to see how variable your emptying is at different times of day.
+    <br>
+    <span style='color:red'><b>Red dots are accidents.</b></span>
     """,
     unsafe_allow_html=True
 )
 boxplot_data = [emptying_full[emptying_full['Hour'] == h]['Amount'] for h in range(24)]
 fig_box, ax_box = plt.subplots(figsize=(8, 3))
-ax_box.boxplot(boxplot_data, positions=range(24), patch_artist=True, boxprops=dict(facecolor='lightgreen', color='green'))
+bp = ax_box.boxplot(boxplot_data, positions=range(24), patch_artist=True, boxprops=dict(facecolor='lightgreen', color='green'))
+
+# Mark accident outliers with red dots
+accident_hours = emptying_full[
+    emptying_full['Emptying Type'].astype(str).str.strip().str.lower() == 'accident'
+]['Hour']
+accident_amounts = emptying_full[
+    emptying_full['Emptying Type'].astype(str).str.strip().str.lower() == 'accident'
+]['Amount']
+ax_box.scatter(accident_hours, accident_amounts, color='red', s=40, zorder=3, label='Accident')
+
 ax_box.set_xlabel('Hour of Day', fontsize=10)
 ax_box.set_ylabel('Emptying Amount (ml)', fontsize=10)
 ax_box.set_title('Emptying Amount Distribution by Hour', fontsize=12, fontweight='bold')
